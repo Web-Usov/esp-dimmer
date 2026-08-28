@@ -23,6 +23,8 @@
 - 1 тактовая кнопка;
 - PlatformIO + Arduino framework.
 
+Схема подключения первого стенда: [docs/wiring.md](docs/wiring.md).
+
 После отладки логики проект будет перенесён на ESP32-C3 SuperMini для многоканальной версии.
 
 ## Структура
@@ -34,6 +36,8 @@ esp-dimmer/
 │   └── main.cpp
 ├── include/
 │   └── config.h
+├── docs/
+│   └── wiring.md
 └── README.md
 ```
 
