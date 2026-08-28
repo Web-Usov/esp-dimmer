@@ -1,0 +1,9 @@
+# clangd is not the Xtensa GCC toolchain; strip ESP8266-only flags.
+# System headers come from --query-driver in .vscode/settings.json.
+CompileFlags:
+  Remove:
+    - -mlongcalls
+    - -mtext-section-literals
+    - -free
+    - -fipa-pta
+    - -falign-functions=*
