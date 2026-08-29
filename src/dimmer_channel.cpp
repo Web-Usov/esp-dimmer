@@ -3,11 +3,13 @@
 DimmerChannel::DimmerChannel(uint8_t channelId,
                              uint8_t ledPin,
                              uint8_t buttonPin,
-                             bool buttonInternalPullup)
+                             bool buttonInternalPullup,
+                             bool buttonActiveHigh)
     : channelId_(channelId),
       ledPin_(ledPin),
       buttonPin_(buttonPin),
-      buttonInternalPullup_(buttonInternalPullup) {}
+      buttonInternalPullup_(buttonInternalPullup),
+      buttonActiveHigh_(buttonActiveHigh) {}
 
 void DimmerChannel::begin() {
     pinMode(buttonPin_, buttonInternalPullup_ ? INPUT_PULLUP : INPUT);
@@ -34,7 +36,9 @@ void DimmerChannel::begin() {
 
 void DimmerChannel::update() {
     const uint32_t nowMs = millis();
-    const bool pressedNow = digitalRead(buttonPin_) == LOW;
+    const int buttonLevel = digitalRead(buttonPin_);
+    const bool pressedNow = buttonActiveHigh_ ? (buttonLevel == HIGH)
+                                              : (buttonLevel == LOW);
 
     if (pressedNow != rawPressed_) {
         rawPressed_ = pressedNow;
