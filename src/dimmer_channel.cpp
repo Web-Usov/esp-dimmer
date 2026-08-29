@@ -16,7 +16,6 @@ void DimmerChannel::begin() {
     if (buttonInternalPullup_) {
         pinMode(buttonPin_, INPUT_PULLUP);
     } else if (buttonPin_ == 16) {
-        // У GPIO16 нет pull-up — для active HIGH используем INPUT_PULLDOWN_16.
         pinMode(buttonPin_, INPUT_PULLDOWN_16);
     } else {
         pinMode(buttonPin_, INPUT);
@@ -34,7 +33,6 @@ void DimmerChannel::begin() {
     }
     pinMode(ledPin_, OUTPUT);
 #elif defined(ESP32)
-    // 10 бит перекрывают duty 0…1000, которые использует прошивка.
     ledcAttach(ledPin_, config::kPwmFrequencyHz, 10);
 #else
 #error "Неподдерживаемая платформа"
@@ -69,6 +67,15 @@ void DimmerChannel::update() {
     }
 }
 
+bool DimmerChannel::isPowered() const {
+    return powered_;
+}
+
+void DimmerChannel::setPower(bool powered) {
+    powered_ = powered;
+    applyOutput();
+}
+
 void DimmerChannel::handlePressEdge(bool pressed, uint32_t nowMs) {
     stablePressed_ = pressed;
 
@@ -77,7 +84,6 @@ void DimmerChannel::handlePressEdge(bool pressed, uint32_t nowMs) {
         return;
     }
 
-    // Отпускание кнопки.
     if (holdActive_) {
         stopHoldFade();
         return;

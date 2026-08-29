@@ -17,29 +17,28 @@ constexpr uint16_t kLongPressMs = 450;
 constexpr uint16_t kFadeStepIntervalMs = 30;
 constexpr uint8_t kFadeStepPercent = 1;
 
-constexpr size_t kChannelCount = 5;
+constexpr size_t kChannelCount = 3;
 
 #if defined(ESP8266)
-// Соответствует docs/wiring.md — пятиканальный стенд NodeMCU.
-// Канал 5: LED на D8 (PWM; при OFF пин LOW — совместимо с boot).
-// Кнопка на D0 с INPUT_PULLDOWN_16, нажатие на 3V3 (active HIGH).
-// GPIO16 умеет software PWM, но здесь его выгоднее использовать как кнопку:
-// уникальный INPUT_PULLDOWN_16 позволяет обойтись без внешнего резистора.
-constexpr uint8_t kLedPins[kChannelCount] = {D1, D2, D5, D6, D8};
-constexpr uint8_t kButtonPins[kChannelCount] = {D3, D4, D7, D9, D0};
-// true = INPUT_PULLUP, false = INPUT_PULLDOWN_16 (только GPIO16).
-constexpr bool kButtonInternalPullup[kChannelCount] = {
-    true, true, true, true, false};
-constexpr bool kButtonActiveHigh[kChannelCount] = {
-    false, false, false, false, true};
+// Три рабочих канала NodeMCU.
+constexpr uint8_t kLedPins[kChannelCount] = {D1, D2, D5};
+constexpr uint8_t kButtonPins[kChannelCount] = {D3, D4, D7};
+constexpr bool kButtonInternalPullup[kChannelCount] = {true, true, true};
+constexpr bool kButtonActiveHigh[kChannelCount] = {false, false, false};
+
+// Физическая пятая кнопка прежнего стенда становится master-кнопкой.
+// D0 / GPIO16 использует INPUT_PULLDOWN_16, поэтому кнопка подключается к 3V3
+// и работает как active HIGH без внешнего резистора.
+constexpr uint8_t kMasterButtonPin = D0;
+constexpr bool kMasterButtonActiveHigh = true;
 #elif defined(ESP32)
 // Черновые пины для ESP32-C3. Перед пайкой сверить финальную распиновку.
-constexpr uint8_t kLedPins[kChannelCount] = {4, 5, 6, 7, 10};
-constexpr uint8_t kButtonPins[kChannelCount] = {3, 2, 1, 0, 8};
-constexpr bool kButtonInternalPullup[kChannelCount] = {
-    true, true, true, true, true};
-constexpr bool kButtonActiveHigh[kChannelCount] = {
-    false, false, false, false, false};
+constexpr uint8_t kLedPins[kChannelCount] = {4, 5, 6};
+constexpr uint8_t kButtonPins[kChannelCount] = {3, 2, 1};
+constexpr bool kButtonInternalPullup[kChannelCount] = {true, true, true};
+constexpr bool kButtonActiveHigh[kChannelCount] = {false, false, false};
+constexpr uint8_t kMasterButtonPin = 8;
+constexpr bool kMasterButtonActiveHigh = true;
 #else
 #error "Неподдерживаемая платформа"
 #endif

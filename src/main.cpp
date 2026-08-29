@@ -12,11 +12,58 @@ DimmerChannel channels[config::kChannelCount] = {
      config::kButtonInternalPullup[1], config::kButtonActiveHigh[1]},
     {3, config::kLedPins[2], config::kButtonPins[2],
      config::kButtonInternalPullup[2], config::kButtonActiveHigh[2]},
-    {4, config::kLedPins[3], config::kButtonPins[3],
-     config::kButtonInternalPullup[3], config::kButtonActiveHigh[3]},
-    {5, config::kLedPins[4], config::kButtonPins[4],
-     config::kButtonInternalPullup[4], config::kButtonActiveHigh[4]},
 };
+
+bool masterRawPressed = false;
+bool masterStablePressed = false;
+uint32_t masterLastRawChangeMs = 0;
+
+void setupMasterButton() {
+#if defined(ESP8266)
+    pinMode(config::kMasterButtonPin, INPUT_PULLDOWN_16);
+#elif defined(ESP32)
+    pinMode(config::kMasterButtonPin, INPUT_PULLDOWN);
+#endif
+}
+
+bool readMasterPressed() {
+    const int level = digitalRead(config::kMasterButtonPin);
+    return config::kMasterButtonActiveHigh ? (level == HIGH) : (level == LOW);
+}
+
+void toggleMaster() {
+    bool anyPowered = false;
+    for (size_t i = 0; i < config::kChannelCount; ++i) {
+        anyPowered = anyPowered || channels[i].isPowered();
+    }
+
+    const bool targetPowered = !anyPowered;
+    for (size_t i = 0; i < config::kChannelCount; ++i) {
+        channels[i].setPower(targetPowered);
+    }
+
+    Serial.println(targetPowered ? "master: ALL ON" : "master: ALL OFF");
+}
+
+void updateMasterButton() {
+    const uint32_t nowMs = millis();
+    const bool pressedNow = readMasterPressed();
+
+    if (pressedNow != masterRawPressed) {
+        masterRawPressed = pressedNow;
+        masterLastRawChangeMs = nowMs;
+    }
+
+    if ((nowMs - masterLastRawChangeMs) < config::kButtonDebounceMs ||
+        pressedNow == masterStablePressed) {
+        return;
+    }
+
+    masterStablePressed = pressedNow;
+    if (masterStablePressed) {
+        toggleMaster();
+    }
+}
 
 }  // анонимный namespace
 
@@ -27,12 +74,13 @@ void setup() {
     for (size_t i = 0; i < config::kChannelCount; ++i) {
         channels[i].begin();
     }
+    setupMasterButton();
 
     Serial.println();
     Serial.println("esp-dimmer booted");
-    Serial.print("channels: ");
-    Serial.println(config::kChannelCount);
-    Serial.println("short press: toggle | hold: fade up/down");
+    Serial.println("channels: 3 + master");
+    Serial.println("channel: short press toggle | hold fade up/down");
+    Serial.println("master: any ON -> ALL OFF | all OFF -> ALL ON");
     Serial.println("Initial state: all OFF");
 }
 
@@ -40,4 +88,5 @@ void loop() {
     for (size_t i = 0; i < config::kChannelCount; ++i) {
         channels[i].update();
     }
+    updateMasterButton();
 }

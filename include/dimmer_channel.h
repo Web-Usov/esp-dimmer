@@ -16,6 +16,9 @@ public:
     void begin();
     void update();
 
+    bool isPowered() const;
+    void setPower(bool powered);
+
 private:
     enum class FadeDirection : uint8_t { Up, Down };
 
