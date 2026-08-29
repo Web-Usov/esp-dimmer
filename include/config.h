@@ -23,8 +23,8 @@ constexpr size_t kChannelCount = 5;
 // Соответствует docs/wiring.md — пятиканальный стенд NodeMCU.
 // Канал 5: LED на D8 (PWM; при OFF пин LOW — совместимо с boot).
 // Кнопка на D0 с INPUT_PULLDOWN_16, нажатие на 3V3 (active HIGH).
-// Так избегаем кнопку на D8 (сильный board pull-down) и PWM на D0
-// (у GPIO16 на ESP8266 нет нормального software PWM).
+// GPIO16 умеет software PWM, но здесь его выгоднее использовать как кнопку:
+// уникальный INPUT_PULLDOWN_16 позволяет обойтись без внешнего резистора.
 constexpr uint8_t kLedPins[kChannelCount] = {D1, D2, D5, D6, D8};
 constexpr uint8_t kButtonPins[kChannelCount] = {D3, D4, D7, D9, D0};
 // true = INPUT_PULLUP, false = INPUT_PULLDOWN_16 (только GPIO16).
