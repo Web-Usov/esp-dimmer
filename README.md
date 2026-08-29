@@ -17,15 +17,31 @@
 
 ## Текущий этап
 
-Первый стенд собирается на NodeMCU ESP8266:
+Одноканальный стенд на **NodeMCU ESP8266** уже работает:
 
-- 1 внешний светодиод;
-- 1 тактовая кнопка;
-- PlatformIO + Arduino framework.
+- 1 внешний светодиод (`D1`);
+- 1 тактовая кнопка (`D2`, `INPUT_PULLUP`);
+- PlatformIO + Arduino framework;
+- логика канала вынесена в `DimmerChannel`.
 
-Схема подключения первого стенда: [docs/wiring.md](docs/wiring.md).
+Схема подключения: [docs/wiring.md](docs/wiring.md).
 
-После отладки логики проект будет перенесён на ESP32-C3 SuperMini для многоканальной версии.
+После стабилизации поведения проект будет перенесён на ESP32-C3 SuperMini для многоканальной версии.
+
+## Поведение прошивки
+
+| Действие | Результат |
+|---|---|
+| Питание / reboot | Канал выключен (`PWM = 0`) |
+| Короткое нажатие (`< 450 мс`) | Toggle вкл/выкл; яркость запоминается |
+| Удержание | Плавный fade; направление чередуется (вверх ↔ вниз) |
+| Удержание из OFF | Включение с 10% и fade вверх |
+| Диапазон яркости | 10–100% |
+| PWM | 1 кГц, duty 0…1000 |
+
+Параметры debounce / long-press / шага fade задаются в `include/config.h`.
+
+В Serial (115200) пишутся события: `ON` / `OFF` / `hold: fade UP|DOWN`.
 
 ## Структура
 
@@ -33,9 +49,11 @@
 esp-dimmer/
 ├── platformio.ini
 ├── src/
-│   └── main.cpp
+│   ├── main.cpp
+│   └── dimmer_channel.cpp
 ├── include/
-│   └── config.h
+│   ├── config.h
+│   └── dimmer_channel.h
 ├── docs/
 │   └── wiring.md
 └── README.md
