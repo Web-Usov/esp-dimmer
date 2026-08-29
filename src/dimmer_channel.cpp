@@ -12,6 +12,10 @@ DimmerChannel::DimmerChannel(uint8_t channelId,
       buttonActiveHigh_(buttonActiveHigh) {}
 
 void DimmerChannel::begin() {
+    // Сначала безопасный OFF на выходе (до настройки кнопки и PWM).
+    pinMode(ledPin_, OUTPUT);
+    digitalWrite(ledPin_, LOW);
+
 #if defined(ESP8266)
     if (buttonInternalPullup_) {
         pinMode(buttonPin_, INPUT_PULLUP);
@@ -31,7 +35,6 @@ void DimmerChannel::begin() {
         analogWriteRange(config::kPwmMaxDuty);
         pwmReady = true;
     }
-    pinMode(ledPin_, OUTPUT);
 #elif defined(ESP32)
     ledcAttach(ledPin_, config::kPwmFrequencyHz, 10);
 #else

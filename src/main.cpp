@@ -12,18 +12,25 @@ DimmerChannel channels[config::kChannelCount] = {
      config::kButtonInternalPullup[1], config::kButtonActiveHigh[1]},
     {3, config::kLedPins[2], config::kButtonPins[2],
      config::kButtonInternalPullup[2], config::kButtonActiveHigh[2]},
+    {4, config::kLedPins[3], config::kButtonPins[3],
+     config::kButtonInternalPullup[3], config::kButtonActiveHigh[3]},
 };
 
 bool masterRawPressed = false;
 bool masterStablePressed = false;
 uint32_t masterLastRawChangeMs = 0;
 
+// Как можно раньше прижимаем PWM-выходы в OFF (до Serial/delay).
+void holdLedOutputsOff() {
+    for (size_t i = 0; i < config::kChannelCount; ++i) {
+        pinMode(config::kLedPins[i], OUTPUT);
+        digitalWrite(config::kLedPins[i], LOW);
+    }
+}
+
 void setupMasterButton() {
-#if defined(ESP8266)
-    pinMode(config::kMasterButtonPin, INPUT_PULLDOWN_16);
-#elif defined(ESP32)
-    pinMode(config::kMasterButtonPin, INPUT_PULLDOWN);
-#endif
+    pinMode(config::kMasterButtonPin,
+            config::kMasterButtonInternalPullup ? INPUT_PULLUP : INPUT);
 }
 
 bool readMasterPressed() {
@@ -67,9 +74,23 @@ void updateMasterButton() {
 
 }  // анонимный namespace
 
+#if defined(ESP8266)
+// Вызывается ядром ESP8266 до setup() — сокращает окно boot-глитча на выходах.
+void preinit() {
+    for (size_t i = 0; i < config::kChannelCount; ++i) {
+        pinMode(config::kLedPins[i], OUTPUT);
+        digitalWrite(config::kLedPins[i], LOW);
+    }
+}
+#endif
+
 void setup() {
+    holdLedOutputsOff();
+
     Serial.begin(config::kSerialBaud);
     delay(50);
+
+    holdLedOutputsOff();
 
     for (size_t i = 0; i < config::kChannelCount; ++i) {
         channels[i].begin();
@@ -78,7 +99,7 @@ void setup() {
 
     Serial.println();
     Serial.println("esp-dimmer booted");
-    Serial.println("channels: 3 + master");
+    Serial.println("channels: 4 + master");
     Serial.println("channel: short press toggle | hold fade up/down");
     Serial.println("master: any ON -> ALL OFF | all OFF -> ALL ON");
     Serial.println("Initial state: all OFF");

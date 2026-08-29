@@ -40,7 +40,8 @@ private:
 
     bool powered_ = false;
     uint8_t brightnessPercent_ = config::kBrightnessDefaultPercent;
-    FadeDirection nextHoldDirection_ = FadeDirection::Up;
+    // После boot яркость по умолчанию 100%, поэтому первый hold — вниз.
+    FadeDirection nextHoldDirection_ = FadeDirection::Down;
 
     bool rawPressed_ = false;
     bool stablePressed_ = false;
