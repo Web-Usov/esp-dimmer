@@ -5,7 +5,18 @@
 
 namespace {
 
-DimmerChannel channel(config::kLedPin, config::kButtonPin);
+DimmerChannel channels[config::kChannelCount] = {
+    {1, config::kLedPins[0], config::kButtonPins[0],
+     config::kButtonInternalPullup[0]},
+    {2, config::kLedPins[1], config::kButtonPins[1],
+     config::kButtonInternalPullup[1]},
+    {3, config::kLedPins[2], config::kButtonPins[2],
+     config::kButtonInternalPullup[2]},
+    {4, config::kLedPins[3], config::kButtonPins[3],
+     config::kButtonInternalPullup[3]},
+    {5, config::kLedPins[4], config::kButtonPins[4],
+     config::kButtonInternalPullup[4]},
+};
 
 }  // namespace
 
@@ -13,14 +24,20 @@ void setup() {
     Serial.begin(config::kSerialBaud);
     delay(50);
 
-    channel.begin();
+    for (size_t i = 0; i < config::kChannelCount; ++i) {
+        channels[i].begin();
+    }
 
     Serial.println();
     Serial.println("esp-dimmer booted");
+    Serial.print("channels: ");
+    Serial.println(config::kChannelCount);
     Serial.println("short press: toggle | hold: fade up/down");
-    Serial.println("Initial state: OFF");
+    Serial.println("Initial state: all OFF");
 }
 
 void loop() {
-    channel.update();
+    for (size_t i = 0; i < config::kChannelCount; ++i) {
+        channels[i].update();
+    }
 }

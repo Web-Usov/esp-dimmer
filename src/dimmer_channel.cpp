@@ -1,14 +1,24 @@
 #include "dimmer_channel.h"
 
-DimmerChannel::DimmerChannel(uint8_t ledPin, uint8_t buttonPin)
-    : ledPin_(ledPin), buttonPin_(buttonPin) {}
+DimmerChannel::DimmerChannel(uint8_t channelId,
+                             uint8_t ledPin,
+                             uint8_t buttonPin,
+                             bool buttonInternalPullup)
+    : channelId_(channelId),
+      ledPin_(ledPin),
+      buttonPin_(buttonPin),
+      buttonInternalPullup_(buttonInternalPullup) {}
 
 void DimmerChannel::begin() {
-    pinMode(buttonPin_, INPUT_PULLUP);
+    pinMode(buttonPin_, buttonInternalPullup_ ? INPUT_PULLUP : INPUT);
 
 #if defined(ESP8266)
-    analogWriteFreq(config::kPwmFrequencyHz);
-    analogWriteRange(config::kPwmMaxDuty);
+    static bool pwmReady = false;
+    if (!pwmReady) {
+        analogWriteFreq(config::kPwmFrequencyHz);
+        analogWriteRange(config::kPwmMaxDuty);
+        pwmReady = true;
+    }
     pinMode(ledPin_, OUTPUT);
 #elif defined(ESP32)
     // 10-bit resolution covers 0..1000 duty values used by this firmware.
@@ -73,8 +83,10 @@ void DimmerChannel::startHoldFade() {
         brightnessPercent_ = config::kBrightnessMinPercent;
         activeHoldDirection_ = FadeDirection::Up;
         applyOutput();
+        logPrefix();
         Serial.println("hold: ON from OFF @ 10%");
     } else {
+        logPrefix();
         Serial.print("hold: fade ");
         Serial.println(activeHoldDirection_ == FadeDirection::Up ? "UP" : "DOWN");
     }
@@ -85,6 +97,7 @@ void DimmerChannel::stopHoldFade() {
     nextHoldDirection_ = (activeHoldDirection_ == FadeDirection::Up)
                              ? FadeDirection::Down
                              : FadeDirection::Up;
+    logPrefix();
     Serial.print("hold end @ ");
     Serial.print(brightnessPercent_);
     Serial.println("%");
@@ -118,6 +131,7 @@ void DimmerChannel::handleHoldFade(uint32_t nowMs) {
 void DimmerChannel::togglePower() {
     powered_ = !powered_;
     applyOutput();
+    logPrefix();
     Serial.print(powered_ ? "ON @ " : "OFF (saved ");
     Serial.print(brightnessPercent_);
     Serial.println("%)");
@@ -149,4 +163,10 @@ void DimmerChannel::setPwmDuty(uint16_t duty) {
 #elif defined(ESP32)
     ledcWrite(ledPin_, duty);
 #endif
+}
+
+void DimmerChannel::logPrefix() const {
+    Serial.print("ch");
+    Serial.print(channelId_);
+    Serial.print(' ');
 }

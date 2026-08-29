@@ -7,7 +7,10 @@
 // One dimmer channel: short press toggles, hold fades up/down alternately.
 class DimmerChannel {
 public:
-    DimmerChannel(uint8_t ledPin, uint8_t buttonPin);
+    DimmerChannel(uint8_t channelId,
+                  uint8_t ledPin,
+                  uint8_t buttonPin,
+                  bool buttonInternalPullup = true);
 
     void begin();
     void update();
@@ -23,9 +26,12 @@ private:
     void togglePower();
     void startHoldFade();
     void stopHoldFade();
+    void logPrefix() const;
 
+    const uint8_t channelId_;
     const uint8_t ledPin_;
     const uint8_t buttonPin_;
+    const bool buttonInternalPullup_;
 
     bool powered_ = false;
     uint8_t brightnessPercent_ = config::kBrightnessDefaultPercent;

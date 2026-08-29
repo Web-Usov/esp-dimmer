@@ -17,16 +17,13 @@
 
 ## Текущий этап
 
-Одноканальный стенд на **NodeMCU ESP8266** уже работает:
+Пятиканальный стенд на **NodeMCU ESP8266**:
 
-- 1 внешний светодиод (`D1`);
-- 1 тактовая кнопка (`D2`, `INPUT_PULLUP`);
+- 5 светодиодов + 5 кнопок (распиновка в [docs/wiring.md](docs/wiring.md));
 - PlatformIO + Arduino framework;
-- логика канала вынесена в `DimmerChannel`.
+- независимая логика каждого канала в `DimmerChannel`.
 
-Схема подключения: [docs/wiring.md](docs/wiring.md).
-
-После стабилизации поведения проект будет перенесён на ESP32-C3 SuperMini для многоканальной версии.
+После отладки на NodeMCU — перенос на ESP32-C3 SuperMini.
 
 ## Поведение прошивки
 
@@ -41,7 +38,7 @@
 
 Параметры debounce / long-press / шага fade задаются в `include/config.h`.
 
-В Serial (115200) пишутся события: `ON` / `OFF` / `hold: fade UP|DOWN`.
+В Serial (115200) пишутся события с номером канала, например: `ch1 ON @ 100%`, `ch3 hold: fade UP`.
 
 ## Структура
 
