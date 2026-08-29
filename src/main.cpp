@@ -18,7 +18,7 @@ DimmerChannel channels[config::kChannelCount] = {
      config::kButtonInternalPullup[4], config::kButtonActiveHigh[4]},
 };
 
-}  // namespace
+}  // анонимный namespace
 
 void setup() {
     Serial.begin(config::kSerialBaud);

@@ -12,7 +12,18 @@ DimmerChannel::DimmerChannel(uint8_t channelId,
       buttonActiveHigh_(buttonActiveHigh) {}
 
 void DimmerChannel::begin() {
+#if defined(ESP8266)
+    if (buttonInternalPullup_) {
+        pinMode(buttonPin_, INPUT_PULLUP);
+    } else if (buttonPin_ == 16) {
+        // У GPIO16 нет pull-up — для active HIGH используем INPUT_PULLDOWN_16.
+        pinMode(buttonPin_, INPUT_PULLDOWN_16);
+    } else {
+        pinMode(buttonPin_, INPUT);
+    }
+#else
     pinMode(buttonPin_, buttonInternalPullup_ ? INPUT_PULLUP : INPUT);
+#endif
 
 #if defined(ESP8266)
     static bool pwmReady = false;
@@ -23,10 +34,10 @@ void DimmerChannel::begin() {
     }
     pinMode(ledPin_, OUTPUT);
 #elif defined(ESP32)
-    // 10-bit resolution covers 0..1000 duty values used by this firmware.
+    // 10 бит перекрывают duty 0…1000, которые использует прошивка.
     ledcAttach(ledPin_, config::kPwmFrequencyHz, 10);
 #else
-#error "Unsupported platform"
+#error "Неподдерживаемая платформа"
 #endif
 
     powered_ = false;
@@ -66,7 +77,7 @@ void DimmerChannel::handlePressEdge(bool pressed, uint32_t nowMs) {
         return;
     }
 
-    // Release.
+    // Отпускание кнопки.
     if (holdActive_) {
         stopHoldFade();
         return;

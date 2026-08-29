@@ -1,5 +1,5 @@
-# clangd is not the Xtensa GCC toolchain; strip ESP8266-only flags.
-# System headers come from --query-driver in .vscode/settings.json.
+# clangd — не Xtensa-GCC: убираем флаги только для ESP8266.
+# Системные заголовки подтягиваются через --query-driver в .vscode/settings.json.
 CompileFlags:
   Remove:
     - -mlongcalls

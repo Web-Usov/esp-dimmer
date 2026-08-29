@@ -4,7 +4,7 @@
 
 #include "config.h"
 
-// One dimmer channel: short press toggles, hold fades up/down alternately.
+// Один канал диммера: короткое нажатие — toggle, удержание — fade вверх/вниз.
 class DimmerChannel {
 public:
     DimmerChannel(uint8_t channelId,
