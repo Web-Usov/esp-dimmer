@@ -10,7 +10,8 @@ public:
     DimmerChannel(uint8_t channelId,
                   uint8_t ledPin,
                   uint8_t buttonPin,
-                  bool buttonInternalPullup = true);
+                  bool buttonInternalPullup = true,
+                  bool buttonActiveHigh = false);
 
     void begin();
     void update();
@@ -32,6 +33,7 @@ private:
     const uint8_t ledPin_;
     const uint8_t buttonPin_;
     const bool buttonInternalPullup_;
+    const bool buttonActiveHigh_;
 
     bool powered_ = false;
     uint8_t brightnessPercent_ = config::kBrightnessDefaultPercent;
