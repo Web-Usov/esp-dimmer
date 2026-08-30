@@ -1,16 +1,63 @@
 # Схемы подключения
 
-Пока живут **две** реализации: legacy NodeMCU (протестирована) и target ESP32-C3 (кандидат пинов).
+Две реализации: **ESP32-C3 — primary / production**, **NodeMCU ESP8266 — legacy / compatibility**.
 
+- [Primary: ESP32-C3 SuperMini](#primary-esp32-c3-supermini)
 - [Legacy: NodeMCU ESP8266](#legacy-nodemcu-esp8266)
-- [Target: ESP32-C3 SuperMini](#target-esp32-c3-supermini)
 - [Общее: LED / оптрон / master / проверка](#общее)
+
+---
+
+## Primary: ESP32-C3 SuperMini
+
+Проверено на железе (production pinout).  
+Кнопки не на boot-strap и не на native USB D+/D− (GPIO18/19).
+
+Все кнопки — **active LOW → GND**, `INPUT_PULLUP`.  
+PWM — **active HIGH**, 1 кГц, яркость 10–100%, boot = все OFF.  
+`Serial` — native USB CDC (`ARDUINO_USB_CDC_ON_BOOT` в `platformio.ini`).
+
+### Распиновка
+
+| Назначение | LED / PWM | Кнопка |
+|---|---|---|
+| CH1 | GPIO0 | GPIO5 → GND |
+| CH2 | GPIO1 | GPIO6 → GND |
+| CH3 | GPIO3 | GPIO7 → GND |
+| CH4 | GPIO4 | GPIO10 → GND |
+| MASTER | — | GPIO20 → GND |
+
+### Схема
+
+```text
+                      ESP32-C3 SuperMini
+                      ┌─────────────────────┐
+                GPIO0 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH1
+                GPIO1 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH2
+                GPIO3 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH3
+                GPIO4 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH4
+                      │
+                GPIO5 ●── [BTN1] ── GND
+                GPIO6 ●── [BTN2] ── GND
+                GPIO7 ●── [BTN3] ── GND
+               GPIO10 ●── [BTN4] ── GND
+               GPIO20 ●── [MASTER] ── GND
+                      │
+                  GND ●──────────────────── общий GND
+                      └─────────────────────┘
+```
+
+Питание: USB **или** внешние 5V/GND (3.3–6 V) — не одновременно (типично для SuperMini).
 
 ---
 
 ## Legacy: NodeMCU ESP8266
 
-Протестированный стенд. Boot-strap на `D3`/`D4` приемлем: не держать BTN1/BTN2 при питании/Reset.
+Compatibility / reference-стенд. Boot-strap на `D3`/`D4` приемлем: не держать BTN1/BTN2 при питании/Reset.
 
 Все кнопки — **active LOW → GND**, `INPUT_PULLUP`.
 
@@ -59,50 +106,6 @@ Rled ≈ 330–470 Ω (на тесте допустим 10 кОм — будет
 1. `D8` — LED (OFF = LOW), не кнопка: на GPIO15 сильный board pull-down.
 2. `D9`/`RX` — master; ввод в Serial с ПК недоступен.
 3. `D0` не для кнопок: нет обычного `INPUT_PULLUP`.
-
----
-
-## Target: ESP32-C3 SuperMini
-
-**Кандидат** распиновки (сверить с конкретной SuperMini перед пайкой).  
-Кнопки не на boot-strap и не на native USB D+/D− (GPIO18/19).
-
-Все кнопки — **active LOW → GND**, `INPUT_PULLUP`.  
-PWM — **active HIGH**, 1 кГц, яркость 10–100%, boot = все OFF.
-
-### Распиновка (кандидат)
-
-| Назначение | LED / PWM | Кнопка |
-|---|---|---|
-| CH1 | GPIO0 | GPIO5 → GND |
-| CH2 | GPIO1 | GPIO6 → GND |
-| CH3 | GPIO3 | GPIO7 → GND |
-| CH4 | GPIO4 | GPIO10 → GND |
-| MASTER | — | GPIO20 → GND |
-
-### Схема
-
-```text
-                      ESP32-C3 SuperMini
-                      ┌─────────────────────┐
-                GPIO0 ●──┬── 10k ── GND
-                      │  └── R ──►|── GND      CH1
-                GPIO1 ●──┬── 10k ── GND
-                      │  └── R ──►|── GND      CH2
-                GPIO3 ●──┬── 10k ── GND
-                      │  └── R ──►|── GND      CH3
-                GPIO4 ●──┬── 10k ── GND
-                      │  └── R ──►|── GND      CH4
-                      │
-                GPIO5 ●── [BTN1] ── GND
-                GPIO6 ●── [BTN2] ── GND
-                GPIO7 ●── [BTN3] ── GND
-               GPIO10 ●── [BTN4] ── GND
-               GPIO20 ●── [MASTER] ── GND
-                      │
-                  GND ●──────────────────── общий GND
-                      └─────────────────────┘
-```
 
 ---
 

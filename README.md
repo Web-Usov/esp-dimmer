@@ -1,6 +1,6 @@
 # ESP Dimmer
 
-Многоканальный регулятор яркости на ESP8266/ESP32.
+Многоканальный регулятор яркости на ESP32-C3 (primary) с совместимостью ESP8266 (legacy).
 
 ## Цель
 
@@ -8,18 +8,25 @@
 - 1 master-кнопка (общее вкл/выкл);
 - PWM 1 кГц, яркость 10–100%;
 - после перезапуска все каналы выключены;
-- дальше — ESP32-C3 + оптроны.
+- дальше — оптроны / нагрузка на базе ESP32-C3.
 
 ## Платформы
 
 | | Статус | Env PlatformIO |
 |---|---|---|
-| **NodeMCU ESP8266** | Legacy, протестированный стенд | `nodemcuv2` |
-| **ESP32-C3 SuperMini** | Target (кандидат распиновки — сверить перед пайкой) | `esp32c3` |
+| **ESP32-C3 SuperMini** | **Primary / production** (проверено на железе) | `esp32c3` (default) |
+| **NodeMCU ESP8266** | Legacy / compatibility | `nodemcuv2` |
 
-Схемы раздельно: [docs/wiring.md](docs/wiring.md).
+Схемы: [docs/wiring.md](docs/wiring.md) — сначала C3, затем legacy NodeMCU.
 
-Версии platform зафиксированы в `platformio.ini` (`espressif8266 @ 4.2.1`, `espressif32 @ 7.0.1`).
+Версии platform зафиксированы в `platformio.ini` (`espressif32 @ 7.0.1`, `espressif8266 @ 4.2.1`).
+
+### Support policy
+
+- Новые возможности реализуются **в первую очередь для ESP32-C3**.
+- Для ESP8266 гарантируем **сборку в CI** и исправление **критических регрессий**; полный feature parity не обязателен.
+- **GitHub Releases** публикуют артефакты только для ESP32-C3 (тег `v*`, workflow `release.yml`).
+- Обычный CI (`build.yml`) собирает оба env: `esp32c3` + `nodemcuv2`.
 
 ## Управление каналом
 
@@ -63,7 +70,7 @@ esp-dimmer/
 
 - **Git**
 - **Python 3.10+** (для PlatformIO CLI)
-- Плата: NodeMCU **или** ESP32-C3 SuperMini
+- Плата: **ESP32-C3 SuperMini** (primary) или NodeMCU ESP8266 (legacy)
 - **USB-кабель с data** (не только зарядка)
 - Редактор по желанию: [Cursor](https://cursor.com/) / VS Code + расширение PlatformIO, либо только CLI
 
@@ -108,19 +115,15 @@ pio --version
 
 ### 4. Сборка (без платы)
 
-Из корня репозитория:
+Default env — `esp32c3` (`pio run` без `-e` собирает primary):
 
 ```bash
-# Legacy NodeMCU
-pio run -e nodemcuv2
-
-# Target ESP32-C3
-pio run -e esp32c3
+pio run                 # ESP32-C3 (default)
+pio run -e esp32c3      # то же явно
+pio run -e nodemcuv2    # legacy NodeMCU
 ```
 
 Успех: `SUCCESS` и бинарники в `.pio/build/<env>/firmware.bin`.
-
-Default env в `platformio.ini` — `nodemcuv2` (`pio run` без `-e` соберёт его).
 
 ### 5. Поиск порта платы
 
@@ -132,7 +135,7 @@ pio device list
 
 Запомните COM-порт (Windows: `COMx`) или `/dev/ttyUSB*` / `/dev/ttyACM*` (Linux/macOS).
 
-**ESP32-C3 SuperMini (native USB):** в системе обычно появляется устройство вида *USB Serial Device (COMx)* / *USB JTAG/serial* (`VID_303A`). Если порта нет:
+**ESP32-C3 SuperMini (native USB):** в системе обычно появляется устройство вида *USB Serial Device (COMx)* / *USB JTAG/serial* (`VID_303A`). В `platformio.ini` для `esp32c3` включены `ARDUINO_USB_MODE` и `ARDUINO_USB_CDC_ON_BOOT`, чтобы `Serial` шёл в этот USB CDC (а не в UART0 на GPIO20/21 — master на GPIO20). Если порта нет:
 
 1. Только USB, **без** внешнего 5V одновременно (по описанию многих SuperMini — USB или внешнее питание).
 2. Другой data-кабель, порт напрямую в ПК.
@@ -142,16 +145,18 @@ pio device list
 
 Подставьте свой порт.
 
-**NodeMCU:**
+**ESP32-C3 (primary):**
+
+```bash
+pio run -t upload --upload-port COMx
+# или явно:
+pio run -e esp32c3 -t upload --upload-port COMx
+```
+
+**NodeMCU (legacy):**
 
 ```bash
 pio run -e nodemcuv2 -t upload --upload-port COMx
-```
-
-**ESP32-C3:**
-
-```bash
-pio run -e esp32c3 -t upload --upload-port COMx
 ```
 
 Без `--upload-port` PlatformIO попробует угадать порт сам.
@@ -169,17 +174,17 @@ pio device monitor -b 115200 --port COMx
 Или:
 
 ```bash
-pio run -e esp32c3 -t monitor --upload-port COMx
+pio run -t monitor --upload-port COMx
 ```
 
 После boot ожидаются строки вроде `esp-dimmer booted`, `channels: 4 + master`. Выход из монитора: `Ctrl+C`.
 
 На NodeMCU master сидит на `D9`/`RX` — **ввод** в Serial с ПК недоступен; лог с платы через TX работает.
 
-### 8. Типовой цикл разработки
+### 8. Типовой цикл разработки (C3)
 
 ```bash
-pio run -e esp32c3 -t upload --upload-port COMx
+pio run -t upload --upload-port COMx
 pio device monitor -b 115200 --port COMx
 ```
 
@@ -194,8 +199,9 @@ pio device monitor -b 115200 --port COMx
 После установки PlatformIO сгенерируйте compilation database:
 
 ```bash
+pio run -t compiledb
+# или явно:
 pio run -e esp32c3 -t compiledb
-# или
 pio run -e nodemcuv2 -t compiledb
 ```
 
@@ -205,6 +211,7 @@ pio run -e nodemcuv2 -t compiledb
 
 ---
 
-## CI
+## CI и Releases
 
-На `push` / `pull_request` GitHub Actions собирает оба env (`.github/workflows/build.yml`, PlatformIO `6.1.19`) — только compile, без прошивки.
+- **CI** (`push` / `pull_request`): оба env — `.github/workflows/build.yml`, PlatformIO `6.1.19` (compile-only).
+- **Releases** (тег `v*` или `workflow_dispatch`): только ESP32-C3 — `.github/workflows/release.yml` (`firmware.bin`, merged `full.bin`, `SHA256SUMS.txt`).
