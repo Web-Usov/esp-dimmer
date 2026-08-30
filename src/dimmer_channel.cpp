@@ -1,5 +1,7 @@
 #include "dimmer_channel.h"
 
+#include "pwm_backend.h"
+
 DimmerChannel::DimmerChannel(uint8_t channelId,
                              uint8_t ledPin,
                              uint8_t buttonPin,
@@ -12,9 +14,7 @@ DimmerChannel::DimmerChannel(uint8_t channelId,
       buttonActiveHigh_(buttonActiveHigh) {}
 
 void DimmerChannel::begin() {
-    // Сначала безопасный OFF на выходе (до настройки кнопки и PWM).
-    pinMode(ledPin_, OUTPUT);
-    digitalWrite(ledPin_, LOW);
+    pwm_backend::beginPin(ledPin_);
 
 #if defined(ESP8266)
     if (buttonInternalPullup_) {
@@ -28,21 +28,9 @@ void DimmerChannel::begin() {
     pinMode(buttonPin_, buttonInternalPullup_ ? INPUT_PULLUP : INPUT);
 #endif
 
-#if defined(ESP8266)
-    static bool pwmReady = false;
-    if (!pwmReady) {
-        analogWriteFreq(config::kPwmFrequencyHz);
-        analogWriteRange(config::kPwmMaxDuty);
-        pwmReady = true;
-    }
-#elif defined(ESP32)
-    ledcAttach(ledPin_, config::kPwmFrequencyHz, 10);
-#else
-#error "Неподдерживаемая платформа"
-#endif
-
     powered_ = false;
     brightnessPercent_ = config::kBrightnessDefaultPercent;
+    ignoreUntilRelease_ = false;
     applyOutput();
 }
 
@@ -62,6 +50,10 @@ void DimmerChannel::update() {
         handlePressEdge(pressedNow, nowMs);
     }
 
+    if (ignoreUntilRelease_) {
+        return;
+    }
+
     if (holdActive_) {
         handleHoldFade(nowMs);
     } else if (stablePressed_ &&
@@ -79,8 +71,23 @@ void DimmerChannel::setPower(bool powered) {
     applyOutput();
 }
 
+void DimmerChannel::cancelInteractionUntilRelease() {
+    holdActive_ = false;
+    // Игнор нужен только если кнопка сейчас зажата (иначе первое
+    // короткое нажатие «съедается» и канал включается со второго раза).
+    ignoreUntilRelease_ = stablePressed_ || rawPressed_;
+}
+
 void DimmerChannel::handlePressEdge(bool pressed, uint32_t nowMs) {
     stablePressed_ = pressed;
+
+    if (ignoreUntilRelease_) {
+        if (!pressed) {
+            ignoreUntilRelease_ = false;
+            pressStartMs_ = nowMs;
+        }
+        return;
+    }
 
     if (pressed) {
         pressStartMs_ = nowMs;
@@ -163,7 +170,7 @@ void DimmerChannel::togglePower() {
 
 void DimmerChannel::applyOutput() {
     if (!powered_) {
-        setPwmDuty(0);
+        pwm_backend::writePercent(ledPin_, 0);
         return;
     }
 
@@ -173,20 +180,7 @@ void DimmerChannel::applyOutput() {
         brightnessPercent_ = config::kBrightnessMaxPercent;
     }
 
-    setPwmDuty(dutyFromPercent(brightnessPercent_));
-}
-
-uint16_t DimmerChannel::dutyFromPercent(uint8_t percent) const {
-    return static_cast<uint16_t>(
-        (static_cast<uint32_t>(percent) * config::kPwmMaxDuty) / 100U);
-}
-
-void DimmerChannel::setPwmDuty(uint16_t duty) {
-#if defined(ESP8266)
-    analogWrite(ledPin_, duty);
-#elif defined(ESP32)
-    ledcWrite(ledPin_, duty);
-#endif
+    pwm_backend::writePercent(ledPin_, brightnessPercent_);
 }
 
 void DimmerChannel::logPrefix() const {

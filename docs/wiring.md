@@ -1,10 +1,20 @@
-# Схема тестового стенда
+# Схемы подключения
 
-**NodeMCU ESP8266**: 4 канала + 1 master-кнопка.
+Пока живут **две** реализации: legacy NodeMCU (протестирована) и target ESP32-C3 (кандидат пинов).
 
-Все кнопки — **active LOW → GND**, `INPUT_PULLUP` (без `3V3`).
+- [Legacy: NodeMCU ESP8266](#legacy-nodemcu-esp8266)
+- [Target: ESP32-C3 SuperMini](#target-esp32-c3-supermini)
+- [Общее: LED / оптрон / master / проверка](#общее)
 
-## Распиновка
+---
+
+## Legacy: NodeMCU ESP8266
+
+Протестированный стенд. Boot-strap на `D3`/`D4` приемлем: не держать BTN1/BTN2 при питании/Reset.
+
+Все кнопки — **active LOW → GND**, `INPUT_PULLUP`.
+
+### Распиновка
 
 | Назначение | LED / PWM | Кнопка |
 |---|---|---|
@@ -16,7 +26,7 @@
 
 `D0` свободен. Serial — только вывод через `TX`.
 
-## Схема
+### Схема
 
 ```text
                          NodeMCU ESP8266
@@ -44,54 +54,91 @@
 Rled ≈ 330–470 Ω (на тесте допустим 10 кОм — будет тускло)
 ```
 
-## LED / PWM-выход
+Замечания NodeMCU:
+
+1. `D8` — LED (OFF = LOW), не кнопка: на GPIO15 сильный board pull-down.
+2. `D9`/`RX` — master; ввод в Serial с ПК недоступен.
+3. `D0` не для кнопок: нет обычного `INPUT_PULLUP`.
+
+---
+
+## Target: ESP32-C3 SuperMini
+
+**Кандидат** распиновки (сверить с конкретной SuperMini перед пайкой).  
+Кнопки не на boot-strap и не на native USB D+/D− (GPIO18/19).
+
+Все кнопки — **active LOW → GND**, `INPUT_PULLUP`.  
+PWM — **active HIGH**, 1 кГц, яркость 10–100%, boot = все OFF.
+
+### Распиновка (кандидат)
+
+| Назначение | LED / PWM | Кнопка |
+|---|---|---|
+| CH1 | GPIO0 | GPIO5 → GND |
+| CH2 | GPIO1 | GPIO6 → GND |
+| CH3 | GPIO3 | GPIO7 → GND |
+| CH4 | GPIO4 | GPIO10 → GND |
+| MASTER | — | GPIO20 → GND |
+
+### Схема
+
+```text
+                      ESP32-C3 SuperMini
+                      ┌─────────────────────┐
+                GPIO0 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH1
+                GPIO1 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH2
+                GPIO3 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH3
+                GPIO4 ●──┬── 10k ── GND
+                      │  └── R ──►|── GND      CH4
+                      │
+                GPIO5 ●── [BTN1] ── GND
+                GPIO6 ●── [BTN2] ── GND
+                GPIO7 ●── [BTN3] ── GND
+               GPIO10 ●── [BTN4] ── GND
+               GPIO20 ●── [MASTER] ── GND
+                      │
+                  GND ●──────────────────── общий GND
+                      └─────────────────────┘
+```
+
+---
+
+## Общее
+
+### LED / PWM-выход (анти-глитч)
 
 На каждый канал — **два** резистора:
 
 ```text
-Dx ──┬── 10 kΩ ── GND          pull-down (анти-глитч при Reset/питании)
-     │
-     └── Rled ── LED ── GND    токоограничение
+GPIO ──┬── 10 kΩ ── GND          pull-down (Reset / питание)
+       │
+       └── Rled ── LED/оптрон ── GND
 ```
 
-Без pull-down GPIO при Reset может кратко «всплыть» и вспыхнуть LED (на стенде заметно на ch3/`D5`). Прошивка жмёт выходы в LOW как можно раньше, но **подтяжка в железе обязательна** для оптрона/нагрузки.
+Прошивка жмёт выходы в LOW как можно раньше, но **подтяжка в железе обязательна** для оптрона.
 
-### Задел под оптрон (HIGH = вкл)
-
-```text
-Dx ──┬── 10 kΩ ── GND
-     └── Rseries ── анод LED оптрона ── катод ── GND
-```
-
-## Кнопки
-
-Все пять одинаково:
+### Кнопки
 
 ```text
 PIN -------- [ BUTTON ] -------- GND
 отпущена = HIGH, нажата = LOW
 ```
 
-## Master
+### Master
 
-Одно срабатывание на нажатие (есть debounce, нет fade):
-
-- есть хотя бы один ON → выключить все 4;
-- все OFF → включить все 4 на сохранённой в RAM яркости.
+- хотя бы один ON → ALL OFF;
+- все OFF → ALL ON на сохранённой в RAM яркости;
+- во время fade канала master замораживает яркость и блокирует ввод до отпускания кнопки канала.
 
 После reboot все каналы OFF.
 
-## Замечания
+### Что проверяем
 
-1. `D3` / `D4` — boot-strap: не держите BTN1/BTN2 при включении или Reset.
-2. `D8` — LED (при OFF = LOW), не кнопка: на GPIO15 у NodeMCU сильный board pull-down.
-3. `D9`/`RX` — master; ввод в Serial с ПК недоступен.
-4. `D0` не используем для кнопок: нет обычного `INPUT_PULLUP`.
-
-## Что проверяем
-
-- CH1–CH4: short press / hold / fade;
+- CH1–CH4: short / hold / fade (первый hold после boot — DOWN; из OFF — 10% UP);
 - master: any ON → ALL OFF, all OFF → ALL ON;
-- яркость после master OFF/ON сохраняется;
-- после Reset нет ложных вспышек LED (с pull-down);
-- PWM 1 кГц, яркость 10–100%.
+- master во время hold не портит сохранённую яркость;
+- после Reset нет ложных вспышек (с pull-down);
+- PWM 1 кГц, 10–100%; на ESP32 `100%` = full LEDC duty (1023 при 10-bit).

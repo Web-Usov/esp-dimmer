@@ -1,0 +1,47 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "compiledb: nodemcuv2",
+            "type": "shell",
+            "command": "${userHome}/.platformio/penv/Scripts/pio.exe",
+            "windows": {
+                "command": "${userHome}/.platformio/penv/Scripts/pio.exe"
+            },
+            "linux": {
+                "command": "${userHome}/.platformio/penv/bin/pio"
+            },
+            "osx": {
+                "command": "${userHome}/.platformio/penv/bin/pio"
+            },
+            "args": ["run", "-e", "nodemcuv2", "-t", "compiledb"],
+            "problemMatcher": [],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "compiledb: esp32c3",
+            "type": "shell",
+            "command": "${userHome}/.platformio/penv/Scripts/pio.exe",
+            "windows": {
+                "command": "${userHome}/.platformio/penv/Scripts/pio.exe"
+            },
+            "linux": {
+                "command": "${userHome}/.platformio/penv/bin/pio"
+            },
+            "osx": {
+                "command": "${userHome}/.platformio/penv/bin/pio"
+            },
+            "args": ["run", "-e", "esp32c3", "-t", "compiledb"],
+            "problemMatcher": [],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ]
+}

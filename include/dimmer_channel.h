@@ -19,12 +19,13 @@ public:
     bool isPowered() const;
     void setPower(bool powered);
 
+    // Master: остановить fade, заморозить яркость, игнор ввода до отпускания кнопки.
+    void cancelInteractionUntilRelease();
+
 private:
     enum class FadeDirection : uint8_t { Up, Down };
 
     void applyOutput();
-    void setPwmDuty(uint16_t duty);
-    uint16_t dutyFromPercent(uint8_t percent) const;
     void handlePressEdge(bool pressed, uint32_t nowMs);
     void handleHoldFade(uint32_t nowMs);
     void togglePower();
@@ -51,4 +52,6 @@ private:
     bool holdActive_ = false;
     FadeDirection activeHoldDirection_ = FadeDirection::Up;
     uint32_t lastFadeStepMs_ = 0;
+
+    bool ignoreUntilRelease_ = false;
 };

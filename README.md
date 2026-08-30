@@ -4,14 +4,20 @@
 
 ## Цель
 
-Стенд на NodeMCU:
-
 - 4 независимых канала (кнопка + PWM на канал);
 - 1 master-кнопка (общее вкл/выкл);
 - PWM 1 кГц, яркость 10–100%;
-- после перезапуска все каналы выключены.
+- после перезапуска все каналы выключены;
+- дальше — ESP32-C3 + оптроны.
 
-Дальше — перенос на ESP32-C3 и управление через оптроны.
+## Платформы
+
+| | Статус |
+|---|---|
+| **NodeMCU ESP8266** | Legacy, протестированный стенд |
+| **ESP32-C3 SuperMini** | Target (кандидат распиновки — сверить перед пайкой) |
+
+Схемы раздельно: [docs/wiring.md](docs/wiring.md).
 
 ## Управление каналом
 
@@ -24,21 +30,10 @@
 ## Master
 
 - хотя бы один канал ON → выключить все;
-- все OFF → включить все на сохранённой яркости.
+- все OFF → включить все на сохранённой яркости;
+- при toggle во время удержания канала fade останавливается, яркость замораживается; ввод канала игнорируется до отпускания кнопки.
 
-Все кнопки → **GND**, `INPUT_PULLUP` (без `3V3`).
-
-## Стенд NodeMCU
-
-| | LED | Кнопка |
-|---|---|---|
-| CH1 | `D1` | `D3` → GND |
-| CH2 | `D2` | `D4` → GND |
-| CH3 | `D5` | `D7` → GND |
-| CH4 | `D8` | `D6` → GND |
-| MASTER | — | `D9`/`RX` → GND |
-
-На каждом LED-пине: **pull-down 10 кОм к GND** + токоограничивающий резистор перед LED (см. [docs/wiring.md](docs/wiring.md)).
+Все кнопки → **GND**, `INPUT_PULLUP`. На каждом PWM: **pull-down 10 кОм к GND** + токоограничение.
 
 ## Структура
 
@@ -47,10 +42,12 @@ esp-dimmer/
 ├── platformio.ini
 ├── src/
 │   ├── main.cpp
-│   └── dimmer_channel.cpp
+│   ├── dimmer_channel.cpp
+│   └── pwm_backend.cpp
 ├── include/
 │   ├── config.h
-│   └── dimmer_channel.h
+│   ├── dimmer_channel.h
+│   └── pwm_backend.h
 ├── docs/
 │   └── wiring.md
 └── README.md
@@ -58,10 +55,25 @@ esp-dimmer/
 
 ## Сборка
 
+Версии platform зафиксированы в `platformio.ini`.
+
 ```bash
-pio run                 # сборка (env: nodemcuv2)
-pio run -t upload       # прошивка
-pio device monitor      # Serial 115200
+pio run -e nodemcuv2      # legacy NodeMCU
+pio run -e esp32c3        # target ESP32-C3
+pio run -e nodemcuv2 -t upload
+pio device monitor        # 115200
 ```
 
-Окружение `esp32c3` зарезервировано под будущий перенос.
+### clangd / compile_commands
+
+Рекомендуется расширение `llvm-vs-code-extensions.vscode-clangd`.
+
+После установки PlatformIO сгенерировать compilation database (Tasks: `compiledb: nodemcuv2` или `compiledb: esp32c3`):
+
+```bash
+pio run -e esp32c3 -t compiledb
+# или
+pio run -e nodemcuv2 -t compiledb
+```
+
+`compile_commands.json` в `.gitignore` — локальный артефакт.

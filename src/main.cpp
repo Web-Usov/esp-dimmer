@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "dimmer_channel.h"
+#include "pwm_backend.h"
 
 namespace {
 
@@ -20,11 +21,9 @@ bool masterRawPressed = false;
 bool masterStablePressed = false;
 uint32_t masterLastRawChangeMs = 0;
 
-// Как можно раньше прижимаем PWM-выходы в OFF (до Serial/delay).
 void holdLedOutputsOff() {
     for (size_t i = 0; i < config::kChannelCount; ++i) {
-        pinMode(config::kLedPins[i], OUTPUT);
-        digitalWrite(config::kLedPins[i], LOW);
+        pwm_backend::holdPinLow(config::kLedPins[i]);
     }
 }
 
@@ -46,6 +45,7 @@ void toggleMaster() {
 
     const bool targetPowered = !anyPowered;
     for (size_t i = 0; i < config::kChannelCount; ++i) {
+        channels[i].cancelInteractionUntilRelease();
         channels[i].setPower(targetPowered);
     }
 
@@ -78,8 +78,7 @@ void updateMasterButton() {
 // Вызывается ядром ESP8266 до setup() — сокращает окно boot-глитча на выходах.
 void preinit() {
     for (size_t i = 0; i < config::kChannelCount; ++i) {
-        pinMode(config::kLedPins[i], OUTPUT);
-        digitalWrite(config::kLedPins[i], LOW);
+        pwm_backend::holdPinLow(config::kLedPins[i]);
     }
 }
 #endif
@@ -91,6 +90,7 @@ void setup() {
     delay(50);
 
     holdLedOutputsOff();
+    pwm_backend::beginGlobal(config::kPwmFrequencyHz);
 
     for (size_t i = 0; i < config::kChannelCount; ++i) {
         channels[i].begin();
