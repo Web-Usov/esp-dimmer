@@ -26,3 +26,22 @@ jobs:
 
       - name: Build ${{ matrix.env }}
         run: pio run -e ${{ matrix.env }}
+
+  schematics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install schematic tools
+        run: python -m pip install -r docs/requirements.txt
+
+      - name: Render schematics
+        run: python docs/schematics/render_all.py
+
+      - name: Check committed SVG are up to date
+        run: git diff --exit-code docs/assets/schematics/

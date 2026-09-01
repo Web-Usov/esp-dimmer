@@ -31,6 +31,10 @@ PWM — **active HIGH**, 1 кГц, яркость 10–100%, boot = все OFF.
 
 ### Схема контроллерного стенда
 
+![Контроллерный стенд ESP32-C3](assets/schematics/controller-stand.svg)
+
+ASCII (compact):
+
 ```text
                       ESP32-C3 SuperMini
                       ┌─────────────────────┐
@@ -55,7 +59,15 @@ PWM — **active HIGH**, 1 кГц, яркость 10–100%, boot = все OFF.
 
 Питание контроллера: USB-C либо штатный вход питания конкретной SuperMini согласно маркировке платы. Не соединять одновременно USB и внешний источник питания, пока power-path конкретной ревизии платы не проверен.
 
-Для реальной нагрузки LED на PWM-выходе заменяется интерфейсом `PC817 -> BC548 -> DIM` — см. [load-control-plan.md](load-control-plan.md).
+Для реальной нагрузки LED на PWM-выходе заменяется интерфейсом `PC817 -> BC548 -> DIM`:
+
+![Схема канала управления нагрузкой](assets/schematics/load-control-channel.svg)
+
+Четыре канала — отдельные интерфейсы, `DIM-` разных LDH не объединять:
+
+![Четыре независимых DIM-интерфейса](assets/schematics/four-channel-overview.svg)
+
+Подробности и bring-up: [load-control-plan.md](load-control-plan.md).
 
 ---
 
@@ -127,7 +139,7 @@ GPIO ──┬── 10 kΩ ── GND          pull-down (Reset / питани�
 
 Прошивка жмёт выходы в LOW как можно раньше, но **hardware pull-down обязателен** и сохраняется при переходе к PC817.
 
-Полная схема реального power-interface специально не дублируется здесь, чтобы не смешивать старый LED-стенд с новым hardware-этапом. См. [load-control-plan.md](load-control-plan.md).
+При переходе к реальной нагрузке LED заменяется на `PC817 -> BC548 -> DIM` (схема выше и в [load-control-plan.md](load-control-plan.md)).
 
 ### Кнопки
 

@@ -7,22 +7,16 @@
 
 Цель — перейти от проверенного стенда `ESP32-C3 -> тестовые LED` к управлению реальной нагрузкой:
 
-```text
-230 VAC
-  ↓
-Mean Well LPV-35-12
-  ↓ 12 V
-Mean Well LDH-25-350W
-  ↓ 350 mA CC
-LED-сборка (~36 V)
+![Архитектура системы](assets/schematics/system-overview.svg)
 
-ESP32-C3 PWM
-  ↓
-PC817
-  ↓
-BC548
-  ↓
-DIM+ / DIM- LDH-25-350W
+Текстовая схема потоков:
+
+```text
+230 VAC → LPV-35-12 → 12 V
+  ├→ DC/DC buck → 5 V → ESP32-C3
+  └→ LDH-25-350W → LED (~36 V, 350 mA CC)
+
+ESP32-C3 PWM → PC817 → BC548 → DIM+/DIM− LDH-25-350W
 ```
 
 Сначала подтверждаем **один эталонный канал**, затем размножаем его на четыре.
@@ -124,6 +118,10 @@ LPV-35-12 -> LDH-25-350W -> LED-сборка
 ---
 
 ## 4. Целевая схема одного канала
+
+![Схема канала управления нагрузкой](assets/schematics/load-control-channel.svg)
+
+Опциональный резистор 50 kΩ `BASE → DIM-` на схеме не показан: он **не устанавливается** (DNP) на первом тесте.
 
 ### 4.1 Сторона ESP32-C3
 
@@ -381,11 +379,13 @@ E -> DIM-
 
 После успешного одного канала повторяем одинаковый узел `PC817 + BC548 + resistors` четыре раза.
 
+![Четыре независимых DIM-интерфейса](assets/schematics/four-channel-overview.svg)
+
 ```text
-GPIO0 -> power interface #1
-GPIO1 -> power interface #2
-GPIO3 -> power interface #3
-GPIO4 -> power interface #4
+GPIO0 -> interface CH1 -> LDH #1 DIM
+GPIO1 -> interface CH2 -> LDH #2 DIM
+GPIO3 -> interface CH3 -> LDH #3 DIM
+GPIO4 -> interface CH4 -> LDH #4 DIM
 ```
 
 Каждый LDH получает собственную DIM-обвязку. `DIM-` разных LDH не объединяем без отдельного подтверждения силовой топологии.

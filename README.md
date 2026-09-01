@@ -60,10 +60,25 @@ esp-dimmer/
 │   ├── dimmer_channel.h
 │   └── pwm_backend.h
 ├── docs/
+│   ├── AGENTS.md
 │   ├── wiring.md
-│   └── load-control-plan.md
+│   ├── load-control-plan.md
+│   ├── requirements.txt
+│   ├── schematics/
+│   │   ├── render_all.py
+│   │   ├── controller_stand.py
+│   │   ├── system_overview.py
+│   │   ├── load_control_channel.py
+│   │   └── four_channel_overview.py
+│   └── assets/schematics/
+│       ├── system-overview.svg
+│       ├── controller-stand.svg
+│       ├── load-control-channel.svg
+│       └── four-channel-overview.svg
 └── README.md
 ```
+
+Схемы документации: `python docs/schematics/render_all.py` (Schemdraw → SVG).
 
 ---
 
