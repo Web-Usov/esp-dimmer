@@ -1,6 +1,8 @@
-# Схемы подключения
+# Схемы подключения контроллера
 
-Две реализации: **ESP32-C3 — primary / production**, **NodeMCU ESP8266 — legacy / compatibility**.
+Две реализации контроллера: **ESP32-C3 — primary**, **NodeMCU ESP8266 — legacy / compatibility**.
+
+Текущий этап управления реальной нагрузкой вынесен отдельно: [load-control-plan.md](load-control-plan.md).
 
 - [Primary: ESP32-C3 SuperMini](#primary-esp32-c3-supermini)
 - [Legacy: NodeMCU ESP8266](#legacy-nodemcu-esp8266)
@@ -10,7 +12,7 @@
 
 ## Primary: ESP32-C3 SuperMini
 
-Проверено на железе (production pinout).  
+Проверено на железе как контроллерный стенд.  
 Кнопки не на boot-strap и не на native USB D+/D− (GPIO18/19).
 
 Все кнопки — **active LOW → GND**, `INPUT_PULLUP`.  
@@ -27,7 +29,7 @@ PWM — **active HIGH**, 1 кГц, яркость 10–100%, boot = все OFF.
 | CH4 | GPIO4 | GPIO10 → GND |
 | MASTER | — | GPIO20 → GND |
 
-### Схема
+### Схема контроллерного стенда
 
 ```text
                       ESP32-C3 SuperMini
@@ -51,7 +53,9 @@ PWM — **active HIGH**, 1 кГц, яркость 10–100%, boot = все OFF.
                       └─────────────────────┘
 ```
 
-Питание: USB **или** внешние 5V/GND (3.3–6 V) — не одновременно (типично для SuperMini).
+Питание контроллера: USB-C либо штатный вход питания конкретной SuperMini согласно маркировке платы. Не соединять одновременно USB и внешний источник питания, пока power-path конкретной ревизии платы не проверен.
+
+Для реальной нагрузки LED на PWM-выходе заменяется интерфейсом `PC817 -> BC548 -> DIM` — см. [load-control-plan.md](load-control-plan.md).
 
 ---
 
@@ -111,17 +115,19 @@ Rled ≈ 330–470 Ω (на тесте допустим 10 кОм — будет
 
 ## Общее
 
-### LED / PWM-выход (анти-глитч)
+### LED / PWM-выход контроллерного стенда
 
 На каждый канал — **два** резистора:
 
 ```text
 GPIO ──┬── 10 kΩ ── GND          pull-down (Reset / питание)
        │
-       └── Rled ── LED/оптрон ── GND
+       └── Rled ── LED ── GND
 ```
 
-Прошивка жмёт выходы в LOW как можно раньше, но **подтяжка в железе обязательна** для оптрона.
+Прошивка жмёт выходы в LOW как можно раньше, но **hardware pull-down обязателен** и сохраняется при переходе к PC817.
+
+Полная схема реального power-interface специально не дублируется здесь, чтобы не смешивать старый LED-стенд с новым hardware-этапом. См. [load-control-plan.md](load-control-plan.md).
 
 ### Кнопки
 
@@ -138,10 +144,12 @@ PIN -------- [ BUTTON ] -------- GND
 
 После reboot все каналы OFF.
 
-### Что проверяем
+### Что проверяем на контроллерном стенде
 
 - CH1–CH4: short / hold / fade (первый hold после boot — DOWN; из OFF — 10% UP);
 - master: any ON → ALL OFF, all OFF → ALL ON;
 - master во время hold не портит сохранённую яркость;
-- после Reset нет ложных вспышек (с pull-down);
+- после Reset нет ложных вспышек на GPIO (с pull-down);
 - PWM 1 кГц, 10–100%; на ESP32 `100%` = full LEDC duty (1023 при 10-bit).
+
+Для проверки реальной нагрузки используется отдельный acceptance checklist из [load-control-plan.md](load-control-plan.md).
