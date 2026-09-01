@@ -8,16 +8,18 @@
 - 1 master-кнопка (общее вкл/выкл);
 - PWM 1 кГц, яркость 10–100%;
 - после перезапуска все каналы выключены;
-- дальше — оптроны / нагрузка на базе ESP32-C3.
+- текущий этап — переход от тестовых LED на GPIO к управлению реальной нагрузкой через `PC817 -> BC548 -> DIM` драйвера LDH-25-350W.
+
+**План текущего hardware-этапа:** [docs/load-control-plan.md](docs/load-control-plan.md).
 
 ## Платформы
 
 | | Статус | Env PlatformIO |
 |---|---|---|
-| **ESP32-C3 SuperMini** | **Primary / production** (проверено на железе) | `esp32c3` (default) |
+| **ESP32-C3 SuperMini** | **Primary / hardware validated** | `esp32c3` (default) |
 | **NodeMCU ESP8266** | Legacy / compatibility | `nodemcuv2` |
 
-Схемы: [docs/wiring.md](docs/wiring.md) — сначала C3, затем legacy NodeMCU.
+Схемы контроллерного стенда: [docs/wiring.md](docs/wiring.md) — сначала C3, затем legacy NodeMCU.
 
 Версии platform зафиксированы в `platformio.ini` (`espressif32 @ 7.0.1`, `espressif8266 @ 4.2.1`).
 
@@ -58,7 +60,8 @@ esp-dimmer/
 │   ├── dimmer_channel.h
 │   └── pwm_backend.h
 ├── docs/
-│   └── wiring.md
+│   ├── wiring.md
+│   └── load-control-plan.md
 └── README.md
 ```
 
@@ -137,7 +140,7 @@ pio device list
 
 **ESP32-C3 SuperMini (native USB):** в системе обычно появляется устройство вида *USB Serial Device (COMx)* / *USB JTAG/serial* (`VID_303A`). В `platformio.ini` для `esp32c3` включены `ARDUINO_USB_MODE` и `ARDUINO_USB_CDC_ON_BOOT`, чтобы `Serial` шёл в этот USB CDC (а не в UART0 на GPIO20/21 — master на GPIO20). Если порта нет:
 
-1. Только USB, **без** внешнего 5V одновременно (по описанию многих SuperMini — USB или внешнее питание).
+1. Не подключать одновременно USB и внешний источник питания, пока power-path конкретной SuperMini не проверен.
 2. Другой data-кабель, порт напрямую в ПК.
 3. Режим прошивки: зажать **BOOT** → нажать/отпустить **RESET** → отпустить **BOOT**. Должен появиться звук подключения устройства и COM-порт.
 
@@ -174,7 +177,7 @@ pio device monitor -b 115200 --port COMx
 Или:
 
 ```bash
-pio run -t monitor --upload-port COMx
+pio run -t monitor --monitor-port COMx
 ```
 
 После boot ожидаются строки вроде `esp-dimmer booted`, `channels: 4 + master`. Выход из монитора: `Ctrl+C`.
