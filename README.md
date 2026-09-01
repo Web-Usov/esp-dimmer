@@ -10,7 +10,7 @@
 - после перезапуска все каналы выключены;
 - текущий этап — переход от тестовых LED на GPIO к управлению реальной нагрузкой через `PC817 -> BC548 -> DIM` драйвера LDH-25-350W.
 
-**План текущего hardware-этапа:** [docs/load-control-plan.md](docs/load-control-plan.md).
+**План текущего hardware-этапа:** [docs/load-control-plan.md](docs/load-control-plan.md). Журнал измерений: [docs/bring-up-log.md](docs/bring-up-log.md).
 
 ## Платформы
 
@@ -63,18 +63,21 @@ esp-dimmer/
 │   ├── AGENTS.md
 │   ├── wiring.md
 │   ├── load-control-plan.md
+│   ├── bring-up-log.md
 │   ├── requirements.txt
 │   ├── schematics/
 │   │   ├── render_all.py
 │   │   ├── controller_stand.py
 │   │   ├── system_overview.py
 │   │   ├── load_control_channel.py
-│   │   └── four_channel_overview.py
+│   │   ├── four_channel_overview.py
+│   │   └── component_pinouts.py
 │   └── assets/schematics/
 │       ├── system-overview.svg
 │       ├── controller-stand.svg
 │       ├── load-control-channel.svg
-│       └── four-channel-overview.svg
+│       ├── four-channel-overview.svg
+│       └── component-pinouts.svg
 └── README.md
 ```
 

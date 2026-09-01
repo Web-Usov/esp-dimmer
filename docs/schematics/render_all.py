@@ -14,6 +14,7 @@ import schemdraw
 
 schemdraw.use("svg")
 
+from component_pinouts import draw as draw_component_pinouts
 from controller_stand import draw as draw_controller_stand
 from four_channel_overview import draw as draw_four_channel
 from load_control_channel import draw as draw_load_control
@@ -26,6 +27,7 @@ SPECS = (
     ("controller-stand.svg", draw_controller_stand),
     ("load-control-channel.svg", draw_load_control),
     ("four-channel-overview.svg", draw_four_channel),
+    ("component-pinouts.svg", draw_component_pinouts),
 )
 
 
