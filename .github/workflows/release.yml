@@ -16,12 +16,14 @@ on:
         default: false
         type: boolean
 
-permissions:
-  contents: write
-
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
 
     steps:
       - name: Checkout
@@ -37,24 +39,35 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install "platformio==6.1.19"
 
-      - name: Resolve release tag
+      - name: Resolve release metadata
         id: meta
         shell: bash
         run: |
+          set -euo pipefail
+
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="${{ inputs.tag }}"
+            INPUT_PRERELEASE="${{ inputs.prerelease }}"
           else
             TAG="${GITHUB_REF_NAME}"
+            INPUT_PRERELEASE="false"
           fi
 
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid release tag: $TAG"
             echo "Expected SemVer-like tag, e.g. v0.1.0 or v0.1.0-rc.1"
             exit 1
           fi
 
+          PRERELEASE="false"
+          if [[ "$TAG" == *-* || "$INPUT_PRERELEASE" == "true" ]]; then
+            PRERELEASE="true"
+          fi
+
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
           echo "Release tag: $TAG"
+          echo "Prerelease: $PRERELEASE"
 
       - name: Build ESP32-C3 firmware
         run: pio run -e esp32c3
@@ -111,7 +124,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.meta.outputs.tag }}
-          PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
         shell: bash
         run: |
           set -euo pipefail
@@ -127,3 +140,45 @@ jobs:
             --title "ESP Dimmer $RELEASE_TAG" \
             --generate-notes \
             "${EXTRA_ARGS[@]}"
+
+      - name: Prepare stable Web Installer site
+        if: steps.meta.outputs.prerelease == 'false'
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python scripts/build_installer_site.py \
+            --version "$RELEASE_TAG" \
+            --firmware "dist/esp-dimmer-${RELEASE_TAG}-full.bin" \
+            --output site
+
+          cat site/manifest.json
+          cat site/firmware/SHA256SUMS.txt
+
+      - name: Upload Web Installer Pages artifact
+        if: steps.meta.outputs.prerelease == 'false'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  deploy-pages:
+    name: Deploy Web Installer
+    if: needs.release.outputs.prerelease == 'false'
+    needs: release
+    runs-on: ubuntu-latest
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
