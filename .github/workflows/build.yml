@@ -45,3 +45,16 @@ jobs:
 
       - name: Check committed SVG are up to date
         run: git diff --exit-code docs/assets/schematics/
+
+  installer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate Web Installer
+        run: python scripts/validate_installer.py
