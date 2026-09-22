@@ -149,35 +149,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          SITE_DIR="site"
-          mkdir -p "$SITE_DIR/firmware"
+          python scripts/build_installer_site.py \
+            --version "$RELEASE_TAG" \
+            --firmware "dist/esp-dimmer-${RELEASE_TAG}-full.bin" \
+            --output site
 
-          cp installer/index.html "$SITE_DIR/index.html"
-          cp "dist/esp-dimmer-${RELEASE_TAG}-full.bin" \
-            "$SITE_DIR/firmware/esp-dimmer-full.bin"
-
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          template = Path("installer/manifest.template.json")
-          output = Path("site/manifest.json")
-          release_tag = os.environ["RELEASE_TAG"]
-
-          data = json.loads(template.read_text(encoding="utf-8"))
-          data["version"] = release_tag.removeprefix("v")
-          output.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-          PY
-
-          printf '%s\n' "$RELEASE_TAG" > "$SITE_DIR/version.txt"
-          (
-            cd "$SITE_DIR/firmware"
-            sha256sum esp-dimmer-full.bin > SHA256SUMS.txt
-          )
-
-          find "$SITE_DIR" -maxdepth 2 -type f -print
-          cat "$SITE_DIR/manifest.json"
+          cat site/manifest.json
+          cat site/firmware/SHA256SUMS.txt
 
       - name: Upload Web Installer Pages artifact
         if: steps.meta.outputs.prerelease == 'false'
