@@ -30,6 +30,18 @@
 - **GitHub Releases** публикуют артефакты только для ESP32-C3 (тег `v*`, workflow `release.yml`).
 - Обычный CI (`build.yml`) собирает оба env: `esp32c3` + `nodemcuv2`.
 
+## Установка готовой прошивки
+
+Для обычной установки на **ESP32-C3** не нужно поднимать среду разработки.
+
+**Web Installer:** https://web-usov.github.io/esp-dimmer/
+
+Подключите ESP32-C3 к компьютеру USB-кабелем с передачей данных, откройте страницу в совместимом с Web Serial браузере и нажмите **«Установить прошивку»**. Установщик использует готовый объединённый `full.bin` из последнего стабильного релиза.
+
+Альтернативно `esp-dimmer-vX.Y.Z-full.bin` можно скачать из [GitHub Releases](https://github.com/Web-Usov/esp-dimmer/releases). Подробности: [docs/firmware-installation.md](docs/firmware-installation.md).
+
+Prerelease-версии (`-rc`, `-alpha` и т. п.) публикуются в Releases, но не заменяют стабильную прошивку в Web Installer.
+
 ## Управление каналом
 
 | Действие | Результат |
@@ -59,11 +71,18 @@ esp-dimmer/
 │   ├── config.h
 │   ├── dimmer_channel.h
 │   └── pwm_backend.h
+├── installer/
+│   ├── index.html
+│   └── manifest.template.json
+├── scripts/
+│   ├── build_installer_site.py
+│   └── validate_installer.py
 ├── docs/
 │   ├── AGENTS.md
 │   ├── wiring.md
 │   ├── load-control-plan.md
 │   ├── bring-up-log.md
+│   ├── firmware-installation.md
 │   ├── requirements.txt
 │   ├── schematics/
 │   │   ├── render_all.py
@@ -86,6 +105,8 @@ esp-dimmer/
 ---
 
 ## Быстрый старт с нуля
+
+Раздел ниже нужен для **разработки из исходников**. Для простой установки готовой прошивки используйте Web Installer выше.
 
 ### 1. Что нужно
 
@@ -234,5 +255,6 @@ pio run -e nodemcuv2 -t compiledb
 
 ## CI и Releases
 
-- **CI** (`push` / `pull_request`): оба env — `.github/workflows/build.yml`, PlatformIO `6.1.19` (compile-only).
+- **CI** (`push` / `pull_request`): оба env — `.github/workflows/build.yml`, PlatformIO `6.1.19` (compile-only), плюс проверка Web Installer.
 - **Releases** (тег `v*` или `workflow_dispatch`): только ESP32-C3 — `.github/workflows/release.yml` (`firmware.bin`, merged `full.bin`, `SHA256SUMS.txt`).
+- **Stable release** дополнительно обновляет Web Installer через GitHub Pages; prerelease публичный installer не изменяет.
