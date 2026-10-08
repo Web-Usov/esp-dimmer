@@ -1,0 +1,48 @@
+name: Sync release notes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "release-notes/v*.md"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find changed release notes
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FILE="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" \
+            | grep -E '^release-notes/v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?\.md$' \
+            | head -n 1)"
+
+          if [[ -z "$FILE" ]]; then
+            echo "No release notes file found in this commit"
+            exit 1
+          fi
+
+          TAG="$(basename "$FILE" .md)"
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_FILE: ${{ steps.notes.outputs.file }}
+          RELEASE_TAG: ${{ steps.notes.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$RELEASE_TAG" >/dev/null
+          gh release edit "$RELEASE_TAG" --notes-file "$RELEASE_FILE"
