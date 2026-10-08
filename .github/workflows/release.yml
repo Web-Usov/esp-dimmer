@@ -2,6 +2,10 @@ name: Release ESP32-C3
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - "VERSION"
     tags:
       - "v*"
   workflow_dispatch:
@@ -48,8 +52,12 @@ jobs:
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="${{ inputs.tag }}"
             INPUT_PRERELEASE="${{ inputs.prerelease }}"
-          else
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             TAG="${GITHUB_REF_NAME}"
+            INPUT_PRERELEASE="false"
+          else
+            VERSION="$(tr -d '[:space:]' < VERSION)"
+            TAG="v${VERSION}"
             INPUT_PRERELEASE="false"
           fi
 
